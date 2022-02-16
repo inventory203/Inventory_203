@@ -1,0 +1,86 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import missingno as msno
+import datetime as dt
+from sklearn.model_selection import train_test_split
+from tensorflow import keras
+from sklearn.preprocessing import StandardScaler
+
+
+%matplotlib inline
+
+data=pd.read_csv('/content/drive/MyDrive/Colab Notebooks/penguins_train.csv')
+df_data=data.loc[:,['Species', 'Island',	'Clutch Completion', 'Date Egg',	'Culmen Length (mm)',	'Culmen Depth (mm)',	'Flipper Length (mm)',	'Body Mass (g)',	'Sex',	'Delta 15 N (o/oo)',	'Delta 13 C (o/oo)']]
+
+
+
+df_data['Date_Egg']=pd.to_datetime(df_data['Date Egg'])
+df_data1=df_data.drop([df_data.columns[3]],axis=1)
+
+df_data1.isnull().sum()
+
+discrete_names = ['Species', 'Island', 'Clutch Completion', 'Sex', 'Date_Egg']
+continuous_names = ['Culmen Length (mm)', 'Culmen Depth (mm)', 'Flipper Length (mm)', 'Body Mass (g)', 'Delta 15 N (o/oo)', 'Delta 13 C (o/oo)']
+
+df_data1.head(10)
+
+df_data1['Body Mass (g)'].hist()
+
+plt.figure(figsize=(20,15))
+plt.suptitle("Histogram", fontsize=40)
+
+for i in range(len(continuous_names)):
+    plt.subplot(2,4,i+1)
+    plt.title(continuous_names[i])
+    plt.hist(df_data1[continuous_names[i]])
+    
+    plt.figure(figsize=(15,10))
+ax = sns.heatmap(df_data1.drop(discrete_names, axis = 1).corr(), annot=True)
+plt.show()
+
+plt.figure(figsize=(20,15))
+
+for i in range(len(discrete_names)):
+    plt.subplot(2,3,i+1)
+    plt.xlabel(discrete_names[i])
+    plt.ylabel('Body Mass (g)')
+    sns.violinplot(x= df_data1[discrete_names[i]], y= df_data1['Body Mass (g)'])
+plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+plt.show()
+
+df_data1.fillna(df_data1.mean(), inplace = True)
+
+df_data1 = pd.get_dummies(df_data1)
+
+df_data1.isnull().sum()
+
+df_data1.head(30)
+
+df_data[continuous_names].info()
+
+df_data1=pd.get_dummies(df_data1)
+df_data1.head(10)
+
+
+x=df_data1[['Body Mass (g)']].values
+y=df_data1[['Culmen Length (mm)', 'Culmen Depth (mm)', 'Flipper Length (mm)', 'Delta 15 N (o/oo)', 'Delta 13 C (o/oo)', 'Species_Adelie Penguin (Pygoscelis adeliae)', 'Species_Chinstrap penguin (Pygoscelis antarctica)', 'Species_Gentoo penguin (Pygoscelis papua)', 'Island_Biscoe', 'Island_Dream', 'Island_Torgersen', 'Clutch Completion_No', 'Clutch Completion_Yes', 'Sex_.', 'Sex_FEMALE', 'Sex_MALE']].values
+
+
+train_input, test_input, train_target, test_target = train_test_split(y, x, test_size=0.4, random_state=42)
+print(train_input.shape)
+print(train_target.shape)
+
+
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import cross_val_score
+
+alphas = [0,0.1,1,10,100]
+
+for alpha in alphas:
+    ridge = Ridge(alpha=alpha)
+    
+    neg_mse_scores = cross_val_score(ridge, train_input, train_target, scoring = 'neg_mean_squared_error', cv = 5)
+    avg_rmse = np.mean(np.sqrt(-neg_mse_scores))
+    print('alpha 값 ', alpha, '일때 평균 rmse :', np.round(avg_rmse,4))
